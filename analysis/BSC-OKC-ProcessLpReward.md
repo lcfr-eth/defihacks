@@ -1,7 +1,7 @@
 # BSC OKC MinerReward ProcessLpReward() exploit
 
 ### Quick Nav
-[Contracts](https://github.com/lcfr-eth/defihacks/edit/master/analysis/BSC-OKC-ProcessLpReward.md#Contracts)
+[Contracts](https://github.com/lcfr-eth/defihacks/master/analysis/BSC-OKC-ProcessLpReward.md#Contracts)
 
 ### Contracts
 [OKC token](https://bscscan.com/address/0xabba891c633fb27f8aa656ea6244dedb15153fe0#code)    

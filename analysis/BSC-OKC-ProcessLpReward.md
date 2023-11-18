@@ -1,9 +1,10 @@
 ## BSC OKC MinerReward ProcessLpReward() exploit
 
 ## Contracts
-OKC token: 0xABba891c633Fb27f8aa656EA6244dEDb15153fE0  
+[OKC token](https://bscscan.com/address/0xabba891c633fb27f8aa656ea6244dedb15153fe0#code)    
+[OKC MinerPool](https://bscscan.com/address/0x36016C4F0E0177861E6377f73C380c70138E13EE#code)  
+
 BSC-USD -> OKC PANCAKEPOOL/LP: 0x9cc7283d8f8b92654e6097aca2acb9655fd5ed96  
-OKC MinerPool: 0x36016C4F0E0177861E6377f73C380c70138E13EE  
 
 ## OKC Token Analysis
 ```constructor() ERC20("OKC", "OKC") {

@@ -129,4 +129,21 @@ Taking a closer look its possible to trigger the processLpReward() function by s
 
 The goal is now clear: To become an LP for OKC and reap the LP rewards. 
 
-### Attack
+### Attack  
+First we need to build a large BSC-USDT position using multiple Flashloan providers.  
+
+The attacker uses multiple [DODOEX flashSwap](https://github.com/DODOEX/docs/blob/2f687d341183cf71ff267dcc4fca5a7d194f5d8c/docs/flashSwap.md?plain=1#L17) implementations for the initial BSC-USDT by chaining the DPPFlashLoanCall callback in order to call additional ```DODOEX flashLoan``` contracts for additional BSC-USDT.  
+
+In the end the attacker chains five BSC-USDT loans.  
+```
+0x81917eb96b397dFb1C6000d28A5bc08c0f05fC1d ->
+0xFeAFe253802b77456B4627F8c2306a9CeBb5d681 ->
+0x26d0c625e5F5D6de034495fbDe1F6e9377185618 ->
+0x6098A5638d8D7e9Ed2f952d35B2b67c34EC6B476 ->
+0x9ad32e3054268B849b84a8dBcC7c8f7c52E4e69A ->
+```
+Total:  
+
+
+
+

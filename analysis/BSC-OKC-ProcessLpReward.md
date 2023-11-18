@@ -134,16 +134,20 @@ First we need to build a large BSC-USDT position using multiple Flashloan provid
 
 The attacker uses multiple [DODOEX flashSwap](https://github.com/DODOEX/docs/blob/2f687d341183cf71ff267dcc4fca5a7d194f5d8c/docs/flashSwap.md?plain=1#L17) implementations for the initial BSC-USDT by chaining the DPPFlashLoanCall callback in order to call additional ```DODOEX flashLoan``` contracts for additional BSC-USDT.  
 
-In the end the attacker chains five BSC-USDT loans.  
+The attacker chains six BSC-USDT flashloans.  
+
+The first five flashloans come from DODOEX
 ```
-0x81917eb96b397dFb1C6000d28A5bc08c0f05fC1d ->
-0xFeAFe253802b77456B4627F8c2306a9CeBb5d681 ->
-0x26d0c625e5F5D6de034495fbDe1F6e9377185618 ->
-0x6098A5638d8D7e9Ed2f952d35B2b67c34EC6B476 ->
-0x9ad32e3054268B849b84a8dBcC7c8f7c52E4e69A ->
+0x81917eb96b397dFb1C6000d28A5bc08c0f05fC1d -> 88177739049580517061951 ($88k)
+0xFeAFe253802b77456B4627F8c2306a9CeBb5d681 -> 2405831490077590788521  ($2.4k)
+0x26d0c625e5F5D6de034495fbDe1F6e9377185618 -> 47814445198579753743246 ($47k)
+0x6098A5638d8D7e9Ed2f952d35B2b67c34EC6B476 -> 84620256046164784063945 ($84k)
+0x9ad32e3054268B849b84a8dBcC7c8f7c52E4e69A -> 30381721225514539668296 ($30k)
 ```
-Total:  
+DODOEX Total: ~$251400+ 
 
+The sixth and final flashloan is using PancakeSwap pancakeV3pool flash() for ```$2,500,000``` BSC-USD.  
 
-
+Total BSC-USD position: 
+2753426503009917185325959 (~$2,753,000)
 

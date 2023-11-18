@@ -10,7 +10,6 @@ pragma solidity ^0.8.13;
 //
 // https://twitter.com/bbbb/status/1724320628533039428
 //
-//
 // OKC Creates a PancakePool for BSC-USD:OKC.
 // OKC rewards users who provide liquidity to the pool.
 // Exploit this by Flashloaning BSC-USD and OKC from the pool.

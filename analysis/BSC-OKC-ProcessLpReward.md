@@ -83,7 +83,8 @@ contract MinerPool {
 
 ### The Problem
 
-Taking a closer look its possible to trigger the processLpReward() function by sending 1 WEI to the MinerPool contract. Rewards are distributed without any consideration for how long the user LP'd for.   
+Taking a closer look its possible to trigger the processLpReward() function by sending 1 WEI to the MinerPool contract.  
+Rewards are distributed without any consideration for how long the user LP'd for.  
 
 ```
     receive() external payable {

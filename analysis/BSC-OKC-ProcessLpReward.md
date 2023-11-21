@@ -140,12 +140,13 @@ The first five flashloans come from DODOEX
 0x6098A5638d8D7e9Ed2f952d35B2b67c34EC6B476 -> 84620256046164784063945 ($84k)
 0x9ad32e3054268B849b84a8dBcC7c8f7c52E4e69A -> 30381721225514539668296 ($30k)
 ```
-DODOEX Total: ~$251400+ 
+DODOEX Total: ```~$251400+```
+
 
 The sixth and final flashloan is using PancakeSwap pancakeV3pool flash() for ```$2,500,000``` BSC-USD.  
 
-Total BSC-USD position: 
-2753426503009917185325959 (~$2,753,000)
+Total BSC-USD position:  
+```2753426503009917185325959 (~$2,753,000)```  
 
 The attacker swaps ~$130k for 27265948780804476044588 OKC tokens.  
 

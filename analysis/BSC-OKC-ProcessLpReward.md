@@ -142,26 +142,28 @@ The first five flashloans come from DODOEX
 ```
 DODOEX Total: ```~$251400+```
 
-
 The sixth and final flashloan is using PancakeSwap pancakeV3pool flash() for ```$2,500,000``` BSC-USD.  
+
+!["Flashloans"](https://github.com/lcfr-eth/defihacks/blob/master/analysis/images/hack_flashloans.png)
 
 Total BSC-USD position:  
 ```2753426503009917185325959 (~$2,753,000)```  
 
-The attacker swaps ~$130k for 27265948780804476044588 OKC tokens.  
+The attacker ```swaps ~$130k for 28108225547221109324317``` OKC tokens.  
 
-The attacker mints 1885225955468200143358449 LP tokens by providing the OKC and remaining BSC-USDT balances.  
+The attacker ```mints 225705840317082411194413 LP tokens``` by providing the OKC and remaining BSC-USDT balances.  
 
-They call the ProcessLpReward() function that grants them extra OKC reward tokens by being an LP holder.  
+They initiate ```ProcessLpReward()``` function by sending 1 WEI that grants them extra OKC reward tokens by being an LP holder.  
 
-They then removeLiquidity() by burning the LP tokens/transferring them back and getting their
+They then ```removeLiquidity()``` by burning the LP tokens/transferring them back and getting their
 OKC and BSC-USDT back in return. 
 
-They then swap all OKC for BSC-USDT totaling: 2759946053396444299856808
+They then swap all OKC for BSC-USDT totaling: ```2759918094878756529033244```
 
 the profit is the difference in the amount of BSC-USDT borrowed originally vs swapped for after the processLpReward() 
 
-Flashloaned: 2753426503009917185325959 (~$2.753m)
-Current BSC-USD: 2759946053396444299856808 (~$2.759)
+!["Swaps"](https://github.com/lcfr-eth/defihacks/blob/master/analysis/images/hack_swaps.png)  
 
-Profit: 6519550386527114530849 (~$6k)
+Flashloaned: ```2753426503009917185325959 ~$2.753m```  
+Current BSC-USD: ```2759946053396444299856808 ~$2.759```  
+Profit: ```6519550386527114530849 ~$6k```  

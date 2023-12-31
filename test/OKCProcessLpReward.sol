@@ -404,5 +404,4 @@ contract OKCProcessLpRewardExploit is Test {
             addr := keccak256(start, 85)
         }
     }
-    
 }
